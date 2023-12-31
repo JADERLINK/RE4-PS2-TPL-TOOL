@@ -11,45 +11,49 @@ namespace TPL_PS2_REPACK
     public class BitmapManager
     {
         private bool flipY = false;
-        private bool rotateInterlace1and3 = false;
-        private string parentDirectory = "";
+        private string ImageFolderDirectory = "";
 
-        public BitmapManager(bool flipY, bool rotateInterlace1and3, string parentDirectory)
+        public BitmapManager(bool flipY, string ImageFolderDirectory)
         {
             this.flipY = flipY;
-            this.rotateInterlace1and3 = rotateInterlace1and3;
-            this.parentDirectory = parentDirectory;
+            this.ImageFolderDirectory = ImageFolderDirectory;
         }
 
-        public void GetBitmapContent(ref TplImageHeader header, out Dictionary<Color, int> allColors, out SimpleBitmap simpleBitmap)
+        public void GetBitmapContent(string imageName, ref TplImageHeader header, out Dictionary<Color, int> allColors, out SimpleBitmap simpleBitmap)
         {
             Bitmap bitmap = null;
-            LoadBitmap(parentDirectory + header.texturePath, out bitmap);
+            LoadBitmap(ImageFolderDirectory, imageName, out bitmap);
 
             if (flipY)
             {
                 bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
             }
 
-            if (rotateInterlace1and3 && (header.interlace == 0x1 || header.interlace == 0x3))
+            if (bitmap.Height > bitmap.Width
+                || (bitmap.Height == bitmap.Width && (header.Interlace == 0x1 || header.Interlace == 0x3))) //(header.Interlace == 0x1 || header.Interlace == 0x3)
             {
                 bitmap.RotateFlip(RotateFlipType.Rotate90FlipX);
             }
 
-            header.width = (ushort)bitmap.Width;
-            header.height = (ushort)bitmap.Height;
+            if ((header.Width != bitmap.Width) // && header.Width != bitmap.Height
+                || (header.Height != bitmap.Height)) // && header.Height != bitmap.Width
+            {
+                Console.WriteLine("In the image: \"" + imageName +"\" The dimensions of the image are different from those of the .idxtplheader file:" + Environment.NewLine +
+                    "Image: " + bitmap.Width + "x" + bitmap.Height + "   Header: " + header.Width + "x" + header.Height);
+            }
 
             GetContent(ref bitmap, out allColors, out simpleBitmap);
         }
 
 
-        private static bool LoadBitmap(string filepath, out Bitmap bitmap)
+        private static bool LoadBitmap(string ImageFolderDirectory, string imageName, out Bitmap bitmap)
         {
+            string filepath = ImageFolderDirectory + imageName;
+
             bitmap = null;
             if (!File.Exists(filepath))
             {
-                // "O arquivo: " + filepath + "não existe, sera usado uma imagem 2x2"
-                Console.WriteLine("The file: " + filepath + "does not exist, a 2x2 image will be used!");
+                Console.WriteLine("The file: \"" + imageName + "\" Does not exist, a 2x2 image will be used!");
                 bitmap = new Bitmap(2, 2);
                 return false;
             }
@@ -72,8 +76,7 @@ namespace TPL_PS2_REPACK
             }
             catch (Exception ex)
             {
-                // "erro ao carregar o arquivo: " + filepath + "no lugar sera usado uma imagem 2x2," + Environment.NewLine + ex.Message
-                Console.WriteLine("error loading file: " + filepath + "a 2x2 image will be used instead," + Environment.NewLine + ex.Message);
+                Console.WriteLine("Error loading file: \"" + imageName + "\" A 2x2 image will be used instead," + Environment.NewLine + ex.Message);
                 bitmap = new Bitmap(2, 2);
                 return false;
             }

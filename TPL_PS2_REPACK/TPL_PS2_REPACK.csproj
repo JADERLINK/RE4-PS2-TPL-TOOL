@@ -7,7 +7,7 @@
     <ProjectGuid>{C3F8FF75-BFB5-4473-93B6-102DB269E1FC}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>TPL_PS2_REPACK</RootNamespace>
-    <AssemblyName>TPL_PS2_REPACK</AssemblyName>
+    <AssemblyName>RE4_PS2_TPL_REPACK</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -51,6 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitmapManager.cs" />
+    <Compile Include="IdxPs2TplLoader.cs" />
+    <Compile Include="IdxtplheaderLoader.cs" />
+    <Compile Include="MakeTPL.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TGA\TGASharpLib.cs" />

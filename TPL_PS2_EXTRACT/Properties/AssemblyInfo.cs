@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // As informações gerais sobre um assembly são controladas por
 // conjunto de atributos. Altere estes valores de atributo para modificar as informações
 // associadas a um assembly.
-[assembly: AssemblyTitle("TPL PS2 EXTRACT")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("RE4_PS2_TPL_EXTRACT")]
+[assembly: AssemblyDescription("RE4_PS2_TPL_EXTRACT by JADERLINK")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TPL PS2 EXTRACT")]
-[assembly: AssemblyCopyright("Copyright © JADERLINK 2023")]
+[assembly: AssemblyCompany("JADERLINK")]
+[assembly: AssemblyProduct("RE4_PS2_TPL_EXTRACT")]
+[assembly: AssemblyCopyright("Copyright ©JADERLINK 2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

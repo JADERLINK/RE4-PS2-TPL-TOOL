@@ -7,7 +7,7 @@
     <ProjectGuid>{B2F5F598-5477-4DC2-9EDB-42D543A59800}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>TPL_PS2_EXTRACT</RootNamespace>
-    <AssemblyName>TPL_PS2_EXTRACT</AssemblyName>
+    <AssemblyName>RE4_PS2_TPL_EXTRACT</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

@@ -28,8 +28,8 @@ namespace TPL_PS2_EXTRACT
 
     Em desenvolvimento
     Para Pesquisas
-    16-04-2023
-    version: alfa.1.0.0.0
+    2023/12/30
+    version: B.1.1.0.0
     */
 
     public static class TplExtract
@@ -38,30 +38,31 @@ namespace TPL_PS2_EXTRACT
         {
             BinaryReader br = new BinaryReader(stream);
 
-            string baseDiretory = info.DirectoryName + "\\" + "Textures\\";
+            string baseName = info.Name.Remove(info.Name.Length - info.Extension.Length, info.Extension.Length);
+
+            string baseDiretory = info.DirectoryName + "\\" + baseName + "\\";
 
             if (!Directory.Exists(baseDiretory))
             {
                 Directory.CreateDirectory(baseDiretory);
             }
 
-            string baseName = info.Name.Remove(info.Name.Length - info.Extension.Length, info.Extension.Length);
-
-            var text = new AltTextWriter(info.FullName + ".txt2", false);
-            var idxtpl = new FileInfo(info.DirectoryName + "\\" + baseName + ".idxtpl").CreateText();
-
-            idxtpl.WriteLine(":##TplExtract##");
-            idxtpl.WriteLine(":##Version A.1.0.0.0##");
+            var idxtpl = new FileInfo(info.DirectoryName + "\\" + baseName + ".idxps2tpl").CreateText();
+            idxtpl.WriteLine(Program.headerText());
             idxtpl.WriteLine("");
+            idxtpl.WriteLine("ImageFlipY:" + flipY);
+            idxtpl.WriteLine("ImageFolder:" + baseName);
+            idxtpl.WriteLine("ImageFormat:" + Enum.GetName(typeof(ImageFormat), imageFormat));
 
-            text.WriteLine("##TplExtract##");
-            text.WriteLine("##Version A.1.0.0.0##");
+            Console.WriteLine("ImageFlipY: " + flipY);
+            Console.WriteLine("ImageFolder: " + baseName);
+            Console.WriteLine("ImageFormat: " + Enum.GetName(typeof(ImageFormat), imageFormat));
+            Console.WriteLine("RotateInterlace1and3: " + rotateInterlace1and3);
+
+            var text = new AltTextWriter(info.FullName + ".Debug.txt2", false); // arquivo de debug desabilitado para a versão release
+            text.WriteLine(Program.headerText());
             text.WriteLine(info.FullName);
             text.WriteLine("");
-
-            idxtpl.WriteLine("ImagesFlipY:" + flipY);
-            idxtpl.WriteLine("ImagesRotateInterlace1and3:" + rotateInterlace1and3);
-            idxtpl.WriteLine("");
 
             byte[] magic = br.ReadBytes(4);
             text.WriteLine("magic: " + BitConverter.ToString(magic));
@@ -69,8 +70,6 @@ namespace TPL_PS2_EXTRACT
             uint TplCount = br.ReadUInt32();
             Console.WriteLine("TplCount: " + TplCount);
             text.WriteLine("TplCount: " + TplCount);
-            idxtpl.WriteLine("TplCount:" + TplCount);
-            idxtpl.WriteLine("");
 
             uint StartOffset = br.ReadUInt32();
             text.WriteLine("StartOffset: 0x" + StartOffset.ToString("X8"));
@@ -83,7 +82,7 @@ namespace TPL_PS2_EXTRACT
 
             br.BaseStream.Position = StartOffset;
 
-            TplImageHeaderAssistant assistant = new TplImageHeaderAssistant(ref br, ref idxtpl, ref text);
+            TplImageHeaderAssistant assistant = new TplImageHeaderAssistant();
 
             //headers
             uint PositionCount = 0;
@@ -91,38 +90,46 @@ namespace TPL_PS2_EXTRACT
             {
                 text.WriteLine("ImageID: " + i);
 
-                TplImageHeader tih = assistant.Fill(StartOffset + PositionCount);
+                TplImageHeader tih = assistant.Fill(ref br, StartOffset + PositionCount);
                 PositionCount += 0x30;
-                assistant.SetText(tih);
+                assistant.SetText(ref text, tih);
 
-                assistant.SetIdxTplMain(tih, i, baseName, imageFormat);
+                PrintTplImageHeader(tih, "Entry: " + i.ToString("D4"));
 
-                if (tih.mipmapStatus == 0x2)
+                if (tih.MipmapStatus == 0x2)
                 {
-                    if (tih.mipmapHeader1Offset != 0)
+                    if (tih.MipmapHeader1Offset != 0)
                     {
                         text.WriteLine("");
                         text.WriteLine("REF ImageID: " + i + ",  mipmapHeader1");
-                        TplImageHeader mipmap1 = assistant.Fill(tih.mipmapHeader1Offset);
-                        tih.mipmapHeader1 = mipmap1;
-                        assistant.SetText(mipmap1);
+                        TplImageHeader mipmap1 = assistant.Fill(ref br, tih.MipmapHeader1Offset);
+                        tih.MipmapHeader1 = mipmap1;
+                        assistant.SetText(ref text, mipmap1);
+
+                        PrintTplImageHeader(mipmap1, "Mipmap1:   ");
                     }
 
-                    if (tih.mipmapHeader2Offset != 0)
+                    if (tih.MipmapHeader2Offset != 0)
                     {
                         text.WriteLine("");
                         text.WriteLine("REF ImageID: " + i + ",  mipmapHeader2");
-                        TplImageHeader mipmap2 = assistant.Fill(tih.mipmapHeader2Offset);
-                        tih.mipmapHeader2 = mipmap2;
-                        assistant.SetText(mipmap2);
+                        TplImageHeader mipmap2 = assistant.Fill(ref br, tih.MipmapHeader2Offset);
+                        tih.MipmapHeader2 = mipmap2;
+                        assistant.SetText(ref text, mipmap2);
+
+                        PrintTplImageHeader(mipmap2, "Mipmap2:   ");
                     }
-                   
-                    assistant.SetIdxTplMipmap(tih, i, baseName, imageFormat);
+                  
                 }
 
+                FileInfo headerInfo = new FileInfo(baseDiretory + i.ToString("D4") + ".IdxtplHeader");
+                var idxHeader = headerInfo.CreateText();
+                idxHeader.WriteLine(Program.headerText());
+                idxHeader.WriteLine("");
+                assistant.SetIdxTplMain(ref idxHeader, tih);
+                idxHeader.Close();
 
                 tihs[i] = tih;
-                idxtpl.WriteLine("");
                 text.WriteLine("");
             }
 
@@ -137,7 +144,7 @@ namespace TPL_PS2_EXTRACT
 
                 try
                 {
-                    AsBitmap = tplImage.GetImage(tihs[i].width, tihs[i].height, tihs[i].bitDepth, tihs[i].interlace, tihs[i].indexesOffset, tihs[i].paletteOffset, out bitmap);
+                    AsBitmap = tplImage.GetImage(tihs[i].Width, tihs[i].Height, tihs[i].BitDepth, tihs[i].Interlace, tihs[i].IndexesOffset, tihs[i].PaletteOffset, out bitmap);
                 }
                 catch (Exception ex)
                 {
@@ -146,20 +153,20 @@ namespace TPL_PS2_EXTRACT
 
                 if (AsBitmap && bitmap != null)
                 {
-                    BitmapSalve(ref bitmap, imageFormat, baseDiretory + baseName + "_" + i);
+                    BitmapSalve(ref bitmap, imageFormat, baseDiretory + i.ToString("D4"));
                 }
                 
 
-                if (tihs[i].mipmapStatus == 0x2)
+                if (tihs[i].MipmapStatus == 0x2)
                 {
-                    if (tihs[i].mipmapHeader1 != null)
+                    if (tihs[i].MipmapHeader1 != null)
                     {
                         Bitmap bitmap1 = null;
                         bool AsBitmap1 = false;
 
                         try
                         {
-                            AsBitmap1 = tplImage.GetImage(tihs[i].mipmapHeader1.width, tihs[i].mipmapHeader1.height, tihs[i].mipmapHeader1.bitDepth, tihs[i].mipmapHeader1.interlace, tihs[i].mipmapHeader1.indexesOffset, tihs[i].paletteOffset, out bitmap1);
+                            AsBitmap1 = tplImage.GetImage(tihs[i].MipmapHeader1.Width, tihs[i].MipmapHeader1.Height, tihs[i].MipmapHeader1.BitDepth, tihs[i].MipmapHeader1.Interlace, tihs[i].MipmapHeader1.IndexesOffset, tihs[i].PaletteOffset, out bitmap1);
                         }
                         catch (Exception ex)
                         {
@@ -168,19 +175,19 @@ namespace TPL_PS2_EXTRACT
 
                         if (AsBitmap1 && bitmap1 != null)
                         {
-                            BitmapSalve(ref bitmap1, imageFormat, baseDiretory + baseName + "_" + i + "_Mipmap1");
+                            BitmapSalve(ref bitmap1, imageFormat, baseDiretory + i.ToString("D4") + "_Mipmap1");
                         }
 
                     }
 
-                    if (tihs[i].mipmapHeader2 != null)
+                    if (tihs[i].MipmapHeader2 != null)
                     {
                         Bitmap bitmap2 = null;
                         bool AsBitmap2 = false;
 
                         try
                         {
-                            AsBitmap2 = tplImage.GetImage(tihs[i].mipmapHeader2.width, tihs[i].mipmapHeader2.height, tihs[i].mipmapHeader2.bitDepth, tihs[i].mipmapHeader2.interlace, tihs[i].mipmapHeader2.indexesOffset, tihs[i].paletteOffset, out bitmap2);
+                            AsBitmap2 = tplImage.GetImage(tihs[i].MipmapHeader2.Width, tihs[i].MipmapHeader2.Height, tihs[i].MipmapHeader2.BitDepth, tihs[i].MipmapHeader2.Interlace, tihs[i].MipmapHeader2.IndexesOffset, tihs[i].PaletteOffset, out bitmap2);
                         }
                         catch (Exception ex)
                         {
@@ -189,7 +196,7 @@ namespace TPL_PS2_EXTRACT
 
                         if (AsBitmap2 && bitmap2 != null)
                         {
-                            BitmapSalve(ref bitmap2, imageFormat, baseDiretory + baseName + "_" + i + "_Mipmap2");
+                            BitmapSalve(ref bitmap2, imageFormat, baseDiretory + i.ToString("D4") + "_Mipmap2");
                         }
 
                     }
@@ -204,6 +211,11 @@ namespace TPL_PS2_EXTRACT
             idxtpl.Close();
             text.Close();
             br.Close();
+        }
+
+        private static void PrintTplImageHeader(TplImageHeader data, string text)
+        {
+            Console.WriteLine(text + "   Dimension: " + (data.Width + "x" + data.Height).PadRight(9) + "   BitDepth: " + data.BitDepth + "   Interlace: " + data.Interlace);
         }
 
         private static void BitmapSalve(ref Bitmap bitmap, ImageFormat imageFormat, string name) 
@@ -1029,190 +1041,164 @@ namespace TPL_PS2_EXTRACT
 
     public class TplImageHeader 
     {
-        public byte[] line;
+        public byte[] Line;
 
-        public ushort width;
-        public ushort height;
-        public ushort bitDepth;
-        public ushort interlace;
-        public ushort unk5;
-        public ushort mipmapStatus;
-        public ushort unk7;
-        public ushort unk8;
+        public ushort Width;
+        public ushort Height;
+        public ushort BitDepth;
+        public ushort Interlace;
+        public ushort Next;
+        public ushort MipmapStatus;
+        public ushort Qwc;
+        public ushort Ref;
 
-        public uint mipmapHeader1Offset;
-        public uint mipmapHeader2Offset;
-        public uint unkx18;
-        public uint unkx1C;
+        public uint MipmapHeader1Offset;
+        public uint MipmapHeader2Offset;
+        public ulong GsMip;
 
-        public uint indexesOffset;
-        public uint paletteOffset;
-        public uint unkx28;
-        public uint unkx2C;
+        public uint IndexesOffset;
+        public uint PaletteOffset;
+        public ulong GsTex;
        
-        public TplImageHeader mipmapHeader1 = null;
-        public TplImageHeader mipmapHeader2 = null;
-
+        public TplImageHeader MipmapHeader1 = null;
+        public TplImageHeader MipmapHeader2 = null;
     }
 
     public class TplImageHeaderAssistant 
     {
-        private BinaryReader br;
-        private AltTextWriter text;
-        private StreamWriter idxtpl;
 
-        public TplImageHeaderAssistant(ref BinaryReader br, ref StreamWriter idxtpl, ref AltTextWriter text)
+        public TplImageHeaderAssistant()
         {
-            this.br = br;
-            this.idxtpl = idxtpl;
-            this.text = text;
         }
 
-        public TplImageHeader Fill(uint Offset) 
+        public TplImageHeader Fill(ref BinaryReader br, uint Offset) 
         {
             TplImageHeader tih = new TplImageHeader();
 
             br.BaseStream.Position = Offset;
 
             byte[] subheader = br.ReadBytes(0x30);
-            tih.line = subheader;
+            tih.Line = subheader;
 
             ushort width = BitConverter.ToUInt16(subheader, 0);
-            tih.width = width;
+            tih.Width = width;
 
             ushort height = BitConverter.ToUInt16(subheader, 2);
-            tih.height = height;
+            tih.Height = height;
 
             ushort bitDepth = BitConverter.ToUInt16(subheader, 4);
-            tih.bitDepth = bitDepth;
+            tih.BitDepth = bitDepth;
 
             ushort interlace = BitConverter.ToUInt16(subheader, 6);
-            tih.interlace = interlace;
+            tih.Interlace = interlace;
 
             ushort unk5 = BitConverter.ToUInt16(subheader, 8);
-            tih.unk5 = unk5;
+            tih.Next = unk5;
 
             //mipmapStatus
             //nesse campo somente existe dois valores atribuiveis:
             // 0x0: não tem conteudo mipmap
             // 0x2 contem o conteudo mipmap
             ushort mipmapStatus = BitConverter.ToUInt16(subheader, 0XA);
-            tih.mipmapStatus = mipmapStatus;
+            tih.MipmapStatus = mipmapStatus;
 
             ushort unk7 = BitConverter.ToUInt16(subheader, 0xC);
-            tih.unk7 = unk7;
+            tih.Qwc = unk7;
 
             ushort unk8 = BitConverter.ToUInt16(subheader, 0xE);
-            tih.unk8 = unk8;
+            tih.Ref = unk8;
 
             uint mipmapHeader1Offset = BitConverter.ToUInt32(subheader, 0x10);
-            tih.mipmapHeader1Offset = mipmapHeader1Offset;
+            tih.MipmapHeader1Offset = mipmapHeader1Offset;
 
             uint mipmapHeader2Offset = BitConverter.ToUInt32(subheader, 0x14);
-            tih.mipmapHeader2Offset = mipmapHeader2Offset;
+            tih.MipmapHeader2Offset = mipmapHeader2Offset;
 
-            uint unkx18 = BitConverter.ToUInt32(subheader, 0x18);
-            tih.unkx18 = unkx18;
-
-            uint unkx1C = BitConverter.ToUInt32(subheader, 0x1C);
-            tih.unkx1C = unkx1C;
+            ulong gsMip = BitConverter.ToUInt64(subheader, 0x18);
+            tih.GsMip = gsMip;
 
             uint indexesOffset = BitConverter.ToUInt32(subheader, 0x20);
-            tih.indexesOffset = indexesOffset;
+            tih.IndexesOffset = indexesOffset;
 
             uint paletteOffset = BitConverter.ToUInt32(subheader, 0x24);
-            tih.paletteOffset = paletteOffset;
+            tih.PaletteOffset = paletteOffset;
 
-            uint unkx28 = BitConverter.ToUInt32(subheader, 0x28);
-            tih.unkx28 = unkx28;
-
-            uint unkx2C = BitConverter.ToUInt32(subheader, 0x2C);
-            tih.unkx2C = unkx2C;
+            ulong gsTex = BitConverter.ToUInt64(subheader, 0x28);
+            tih.GsTex = gsTex;
 
             return tih;
         }
 
-        public void SetText(TplImageHeader tih) 
+        public void SetText(ref AltTextWriter text, TplImageHeader tih) 
         {
-            text.WriteLine("width: " + tih.width);
-            text.WriteLine("height: " + tih.height);
-            text.WriteLine("bitDepth: 0x" + tih.bitDepth.ToString("X4"));
-            text.WriteLine("interlace: 0x" + tih.interlace.ToString("X4"));
-            text.WriteLine("unk5: 0x" + tih.unk5.ToString("X4"));
-            text.WriteLine("mipmapStatus: " + tih.mipmapStatus.ToString("X4"));
-            text.WriteLine("unk7: 0x" + tih.unk7.ToString("X4"));
-            text.WriteLine("unk8: 0x" + tih.unk8.ToString("X4"));
-            text.WriteLine("mipmapHeader1Offset: 0x" + tih.mipmapHeader1Offset.ToString("X8"));
-            text.WriteLine("mipmapHeader2Offset: 0x" + tih.mipmapHeader2Offset.ToString("X8"));
-            text.WriteLine("unkx18: 0x" + tih.unkx18.ToString("X8"));
-            text.WriteLine("unkx1C: 0x" + tih.unkx1C.ToString("X8"));
-            text.WriteLine("indexesOffset: 0x" + tih.indexesOffset.ToString("X8"));
-            text.WriteLine("paletteOffset: 0x" + tih.paletteOffset.ToString("X8"));
-            text.WriteLine("unkx28: 0x" + tih.unkx28.ToString("X8"));
-            text.WriteLine("unkx2C: 0x" + tih.unkx2C.ToString("X8"));
+            text.WriteLine("Width: " + tih.Width);
+            text.WriteLine("Height: " + tih.Height);
+            text.WriteLine("BitDepth: 0x" + tih.BitDepth.ToString("X4"));
+            text.WriteLine("Interlace: 0x" + tih.Interlace.ToString("X4"));
+            text.WriteLine("Next: 0x" + tih.Next.ToString("X4"));
+            text.WriteLine("MipmapStatus: " + tih.MipmapStatus.ToString("X4"));
+            text.WriteLine("Qwc: 0x" + tih.Qwc.ToString("X4"));
+            text.WriteLine("Ref: 0x" + tih.Ref.ToString("X4"));
+            text.WriteLine("MipmapHeader1Offset: 0x" + tih.MipmapHeader1Offset.ToString("X8"));
+            text.WriteLine("MipmapHeader2Offset: 0x" + tih.MipmapHeader2Offset.ToString("X8"));
+            text.WriteLine("GsMip: 0x" + tih.GsMip.ToString("X16"));
+            text.WriteLine("IndexesOffset: 0x" + tih.IndexesOffset.ToString("X8"));
+            text.WriteLine("PaletteOffset: 0x" + tih.PaletteOffset.ToString("X8"));
+            text.WriteLine("GsTex: 0x" + tih.GsTex.ToString("X8"));
         }
 
 
-        public void SetIdxTplMain(TplImageHeader tih, int ID, string baseName, ImageFormat imageFormat)
+        public void SetIdxTplMain(ref StreamWriter idx, TplImageHeader tih)
         {
-            string id = ID.ToString("D3");
-            idxtpl.WriteLine("");
-            idxtpl.WriteLine(": " + tih.width + "x" + tih.height);
-            idxtpl.WriteLine(id + "_bitDepth:" + tih.bitDepth.ToString("X4"));
-            idxtpl.WriteLine(id + "_interlace:" + tih.interlace.ToString("X4"));
-            idxtpl.WriteLine(id + "_unk5:" + tih.unk5.ToString("X4"));
-            idxtpl.WriteLine(id + "_unk7:" + tih.unk7.ToString("X4"));
-            idxtpl.WriteLine(id + "_unk8:" + tih.unk8.ToString("X4"));
-            idxtpl.WriteLine(id + "_unkx28:" + tih.unkx28.ToString("X8"));
-            idxtpl.WriteLine(id + "_unkx2C:" + tih.unkx2C.ToString("X8"));
-            idxtpl.WriteLine(id + "_texturePath:Textures\\" + baseName + "_" + ID + "." + Enum.GetName(typeof(ImageFormat), imageFormat));
-        }
+            idx.WriteLine("Width:" + tih.Width);
+            idx.WriteLine("Height:" + tih.Height);
+            idx.WriteLine("BitDepth:" + tih.BitDepth.ToString("X4"));
+            idx.WriteLine("Interlace:" + tih.Interlace.ToString("X4"));
+            idx.WriteLine("Next:" + tih.Next.ToString("X4"));
+            idx.WriteLine("Qwc:" + tih.Qwc.ToString("X4"));
+            idx.WriteLine("Ref:" + tih.Ref.ToString("X4"));
+            idx.WriteLine("GsTex:" + tih.GsTex.ToString("X16"));
 
-        public void SetIdxTplMipmap(TplImageHeader tih, int ID, string baseName, ImageFormat imageFormat) 
-        {
-            string id = ID.ToString("D3");
-
-            idxtpl.WriteLine("");
-            idxtpl.WriteLine(id + "_mipmapStatus:" + tih.mipmapStatus.ToString("X4"));
-            idxtpl.WriteLine(id + "_unkx18:" + tih.unkx18.ToString("X8"));
-            idxtpl.WriteLine(id + "_unkx1C:" + tih.unkx1C.ToString("X8"));
-
-            if (tih.mipmapHeader1 != null)
+            if (tih.MipmapStatus != 0)
             {
-                idxtpl.WriteLine("");
-                idxtpl.WriteLine(": " + tih.mipmapHeader1.width + "x" + tih.mipmapHeader1.height);
-                idxtpl.WriteLine(id + "_mipmap1_bitDepth:" + tih.mipmapHeader1.bitDepth.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap1_interlace:" + tih.mipmapHeader1.interlace.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap1_unk5:" + tih.mipmapHeader1.unk5.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap1_unk7:" + tih.mipmapHeader1.unk7.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap1_unk8:" + tih.mipmapHeader1.unk8.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap1_unkx28:" + tih.mipmapHeader1.unkx28.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap1_unkx2C:" + tih.mipmapHeader1.unkx2C.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap1_mipmapStatus:" + tih.mipmapHeader1.mipmapStatus.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap1_unkx18:" + tih.mipmapHeader1.unkx18.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap1_unkx1C:" + tih.mipmapHeader1.unkx1C.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap1_texturePath:Textures\\" + baseName + "_" + ID + "_Mipmap1." + Enum.GetName(typeof(ImageFormat), imageFormat));
-               
+                SetIdxTplMipmaps(ref idx, tih);
+            }
+        }
+
+        private void SetIdxTplMipmaps(ref StreamWriter idx, TplImageHeader tih) 
+        {
+            idx.WriteLine("");
+            idx.WriteLine("MipmapStatus:" + tih.MipmapStatus.ToString("X4"));
+            idx.WriteLine("GsMip:" + tih.GsMip.ToString("X16"));
+
+            if (tih.MipmapHeader1 != null)
+            {
+                idx.WriteLine("");
+                PrintMipMaptext(ref idx, tih.MipmapHeader1, "Mipmap1_");
             }
 
 
-            if (tih.mipmapHeader2 != null)
+            if (tih.MipmapHeader2 != null)
             {
-                idxtpl.WriteLine("");
-                idxtpl.WriteLine(": " + tih.mipmapHeader2.width + "x" + tih.mipmapHeader2.height);
-                idxtpl.WriteLine(id + "_mipmap2_bitDepth:" + tih.mipmapHeader2.bitDepth.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap2_interlace:" + tih.mipmapHeader2.interlace.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap2_unk5:" + tih.mipmapHeader2.unk5.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap2_unk7:" + tih.mipmapHeader2.unk7.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap2_unk8:" + tih.mipmapHeader2.unk8.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap2_unkx28:" + tih.mipmapHeader2.unkx28.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap2_unkx2C:" + tih.mipmapHeader2.unkx2C.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap2_mipmapStatus:" + tih.mipmapHeader2.mipmapStatus.ToString("X4"));
-                idxtpl.WriteLine(id + "_mipmap2_unkx18:" + tih.mipmapHeader2.unkx18.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap2_unkx1C:" + tih.mipmapHeader2.unkx1C.ToString("X8"));
-                idxtpl.WriteLine(id + "_mipmap2_texturePath:Textures\\" + baseName + "_" + ID + "_Mipmap2." + Enum.GetName(typeof(ImageFormat), imageFormat));
+                idx.WriteLine("");
+                PrintMipMaptext(ref idx, tih.MipmapHeader2, "Mipmap2_");
             }
         }
+
+        private void PrintMipMaptext(ref StreamWriter idx, TplImageHeader tih, string text) 
+        {
+            idx.WriteLine(text + "Width:" + tih.Width);
+            idx.WriteLine(text + "Height:" + tih.Height);
+            idx.WriteLine(text + "BitDepth:" + tih.BitDepth.ToString("X4"));
+            idx.WriteLine(text + "Interlace:" + tih.Interlace.ToString("X4"));
+            idx.WriteLine(text + "Next:" + tih.Next.ToString("X4"));
+            idx.WriteLine(text + "Qwc:" + tih.Qwc.ToString("X4"));
+            idx.WriteLine(text + "Ref:" + tih.Ref.ToString("X4"));
+            idx.WriteLine(text + "GsTex:" + tih.GsTex.ToString("X16"));
+            idx.WriteLine(text + "MipmapStatus:" + tih.MipmapStatus.ToString("X4"));
+            idx.WriteLine(text + "GsMip:" + tih.GsMip.ToString("X16"));
+        }
+
     }
 
 

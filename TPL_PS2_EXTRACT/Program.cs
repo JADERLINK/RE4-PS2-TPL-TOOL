@@ -9,13 +9,26 @@ namespace TPL_PS2_EXTRACT
 {
     class Program
     {
+        public static string Version = "B.1.1.0.0 (2023-12-30)";
+
+        public static string headerText()
+        {
+            return "# RE4_PS2_TPL_EXTRACT" + Environment.NewLine +
+                   "# by: JADERLINK" + Environment.NewLine +
+                   "# Thanks to \"HardHain\" and \"zatarita\"" + Environment.NewLine +
+                  $"# Version {Version}";
+        }
+
         static void Main(string[] args)
         {
-            Console.WriteLine("start");
+            Console.WriteLine(headerText());
 
-            Console.WriteLine("TPL_PS2_EXTRACT Version A.1.0.0.0");
-
-            if (args.Length >= 1 && File.Exists(args[0]))
+            if (args.Length == 0)
+            {
+                Console.WriteLine("For more information read:");
+                Console.WriteLine("https://github.com/JADERLINK/RE4-PS2-TPL-TOOL");
+            }
+            else if (args.Length >= 1 && File.Exists(args[0]))
             {
                 ImageFormat imageFormat = ImageFormat.TGA;
 
@@ -73,12 +86,10 @@ namespace TPL_PS2_EXTRACT
             }
             else
             {
-                Console.WriteLine("no arguments or invalid file");
+                Console.WriteLine("The file does not exist");
             }
 
-            Console.WriteLine("end");
-
-
+            Console.WriteLine("End");
 
         }
     }
