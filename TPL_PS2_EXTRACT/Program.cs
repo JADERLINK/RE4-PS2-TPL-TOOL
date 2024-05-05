@@ -9,11 +9,13 @@ namespace TPL_PS2_EXTRACT
 {
     class Program
     {
-        public static string Version = "B.1.1.0.0 (2023-12-30)";
+        public static string Version = "B.1.1.1 (2024-05-05)";
 
         public static string headerText()
         {
-            return "# RE4_PS2_TPL_EXTRACT" + Environment.NewLine +
+            return "# github.com/JADERLINK/RE4-PS2-TPL-TOOL" + Environment.NewLine +
+                   "# youtube.com/@JADERLINK" + Environment.NewLine +
+                   "# RE4_PS2_TPL_EXTRACT" + Environment.NewLine +
                    "# by: JADERLINK" + Environment.NewLine +
                    "# Thanks to \"HardHain\" and \"zatarita\"" + Environment.NewLine +
                   $"# Version {Version}";
@@ -27,6 +29,8 @@ namespace TPL_PS2_EXTRACT
             {
                 Console.WriteLine("For more information read:");
                 Console.WriteLine("https://github.com/JADERLINK/RE4-PS2-TPL-TOOL");
+                Console.WriteLine("Press any key to close the console.");
+                Console.ReadKey();
             }
             else if (args.Length >= 1 && File.Exists(args[0]))
             {
@@ -44,10 +48,6 @@ namespace TPL_PS2_EXTRACT
                     else if(args[1].ToUpperInvariant().Contains("PNG"))
                     {
                         imageFormat = ImageFormat.PNG;
-                    }
-                    else if (args[1].ToUpperInvariant().Contains("GIF"))
-                    {
-                        imageFormat = ImageFormat.GIF;
                     }
                     else if (args[1].ToUpperInvariant().Contains("BMP"))
                     {

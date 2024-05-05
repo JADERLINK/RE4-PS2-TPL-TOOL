@@ -11,6 +11,11 @@ License: MIT Licence
 
 Programa destinado a extrair e recompactar as imagens do arquivo tpl da versão de PS2 do Re4.
 
+**Update B.1.1.1**
+<br>Código atualizado para ter compatibilidade com o "RE4_PS2_MODEL_VIEWER";
+<br>Melhorado a velocidade do tool de extração de tpl;
+<br>A tool de extração não suporta mais criar arquivo .gif, pois estava criando os arquivos com as cores erradas.
+
 ## Update B.1.1.0.0
 
 O programa foi reestruturado, agora as imagens serão enumeradas e colocadas em uma pasta de mesmo nome do arquivo Tpl, e ao lado de cada imagem, vai ter um arquivo IdxtplHeader;
@@ -72,4 +77,4 @@ Esse é o arquivo usado para recompilar o arquivo Tpl, nele tem os seguintes cam
 [TGASharpLib by ALEXGREENALEX](https://github.com/ALEXGREENALEX/TGASharpLib).
 
 **At.te: JADERLINK**
-<br>2023-12-31
+<br>2024-05-05

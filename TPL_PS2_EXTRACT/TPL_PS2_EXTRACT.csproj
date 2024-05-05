@@ -52,8 +52,12 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleBitmap.cs" />
     <Compile Include="TGA\TGASharpLib.cs" />
     <Compile Include="TplExtract.cs" />
+    <Compile Include="TplExtractHeaders.cs" />
+    <Compile Include="TplImage.cs" />
+    <Compile Include="TplImageHeader.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

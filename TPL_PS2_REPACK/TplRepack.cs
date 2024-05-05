@@ -28,8 +28,8 @@ namespace TPL_PS2_REPACK
 
     Em desenvolvimento
     Para Pesquisas
-    2023/12/30
-    version: B.1.1.0.0
+    2024/05/05
+    version: B.1.1.1
     */
 
 
